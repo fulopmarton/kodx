@@ -159,37 +159,4 @@ function escapeRegex(str: string): string {
 	return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
-/**
- * Get function signature from definition
- */
-export function getFunctionSignature(content: string): string {
-	const lines = content.split('\n');
-	if (lines.length === 0) {
-		return '';
-	}
 
-	// Get first line(s) until opening brace
-	let signature = '';
-	for (const line of lines) {
-		signature += line + '\n';
-		if (line.includes('{')) {
-			break;
-		}
-	}
-
-	return signature.trim();
-}
-
-/**
- * Format function content for display
- */
-export function formatFunctionContent(content: string, maxLines: number = 15): string {
-	const lines = content.split('\n');
-	
-	if (lines.length > maxLines) {
-		// Truncate and add ellipsis
-		return lines.slice(0, maxLines).join('\n') + '\n... (truncated)';
-	}
-
-	return content;
-}

@@ -22,16 +22,6 @@
         "command": "kodx.xray",
         "title": "Xray: Expand Function at Cursor",
         "category": "kodx"
-      },
-      {
-        "command": "kodx.peekDefinition",
-        "title": "Xray: Peek Function Definition (Inline)",
-        "category": "kodx"
-      },
-      {
-        "command": "kodx.toggleInlineCode",
-        "title": "Xray: Toggle Inline Indicators",
-        "category": "kodx"
       }
     ],
     "keybindings": [
@@ -40,22 +30,11 @@
         "key": "alt+x",
         "mac": "alt+x",
         "when": "editorTextFocus"
-      },
-      {
-        "command": "kodx.peekDefinition",
-        "key": "alt+shift+x",
-        "mac": "alt+shift+x",
-        "when": "editorTextFocus"
       }
     ],
     "configuration": {
       "title": "kodx - Code Xray",
       "properties": {
-        "kodx.enableInlineDecoration": {
-          "type": "boolean",
-          "default": true,
-          "description": "Show ⊕ indicator after function calls that can be expanded"
-        },
         "kodx.maxInlineLength": {
           "type": "number",
           "default": 120,

@@ -22,50 +22,9 @@ export interface EnclosingFunction {
 }
 
 /**
- * Parse function calls from a document
- */
-export function parseFunctionCalls(document: vscode.TextDocument): FunctionCall[] {
-	const calls: FunctionCall[] = [];
-	const text = document.getText();
-	
-	// Regex to match function calls - matches word followed by (
-	// Handles: functionName(), obj.method(), etc.
-	const functionCallRegex = /\b([a-zA-Z_$][\w$]*)\s*\(/g;
-	let match;
-
-	while ((match = functionCallRegex.exec(text)) !== null) {
-		const functionName = match[1];
-		
-		// Skip common keywords and built-ins
-		if (isKeywordOrBuiltin(functionName)) {
-			continue;
-		}
-
-		const startPos = match.index;
-		const startLine = document.positionAt(startPos).line;
-		const startChar = document.positionAt(startPos).character;
-		
-		// Create range for the function name
-		const range = new vscode.Range(
-			new vscode.Position(startLine, startChar),
-			new vscode.Position(startLine, startChar + functionName.length)
-		);
-
-		calls.push({
-			name: functionName,
-			range,
-			line: startLine,
-			character: startChar,
-		});
-	}
-
-	return calls;
-}
-
-/**
  * Extract function definition from source code
  */
-export function extractFunctionDefinition(
+function extractFunctionDefinition(
 	document: vscode.TextDocument,
 	startLine: number
 ): { content: string; endLine: number } | null {
@@ -265,32 +224,4 @@ function isKeywordOrBuiltin(name: string): boolean {
 	return keywords.has(name);
 }
 
-/**
- * Find matching braces and extract function body
- */
-export function extractCodeBlock(source: string, startIndex: number): string {
-	let braceCount = 0;
-	let foundStart = false;
-	let result = '';
 
-	for (let i = startIndex; i < source.length; i++) {
-		const char = source[i];
-
-		if (char === '{') {
-			foundStart = true;
-			braceCount++;
-		} else if (char === '}') {
-			braceCount--;
-			if (foundStart && braceCount === 0) {
-				result += char;
-				return result;
-			}
-		}
-
-		if (foundStart) {
-			result += char;
-		}
-	}
-
-	return result;
-}
