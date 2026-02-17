@@ -95,6 +95,21 @@ export function activate(context: vscode.ExtensionContext) {
 		})
 	);
 
+	// ── Theme change → re-highlight Xray panel ──────────────────────────
+	context.subscriptions.push(
+		vscode.window.onDidChangeActiveColorTheme(async () => {
+			disposeHighlighter();
+			if (XrayPanel.isOpen()) {
+				const editor = vscode.window.activeTextEditor;
+				if (editor) {
+					const panel = XrayPanel.getInstance(context);
+					panel.resetCurrentScope();
+					await panel.updateForEditor(editor);
+				}
+			}
+		})
+	);
+
 	// ── Editor/document change → refresh decorations ─────────────────────
 	context.subscriptions.push(
 		vscode.window.onDidChangeActiveTextEditor((editor) => {

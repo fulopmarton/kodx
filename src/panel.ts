@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 import { resolveFunctionDefinition } from './resolver';
 import { findEnclosingFunctionRange, parseFunctionCallsInRange, FunctionDefinition, EnclosingFunction } from './parser';
-import { highlightCode, getShikiTheme } from './highlighter';
+import { highlightCode } from './highlighter';
 
 /**
  * Manages the kodx side panel that shows all function implementations
@@ -130,8 +130,8 @@ export class XrayPanel {
 			})
 		);
 
-		const theme = getShikiTheme();
-		const isDark = theme !== 'github-light';
+		const kind = vscode.window.activeColorTheme.kind;
+		const isDark = kind !== vscode.ColorThemeKind.Light && kind !== vscode.ColorThemeKind.HighContrastLight;
 
 		const hunksHtml = highlighted.map(({ name, relativePath, html, uri, line }) => `
 <div class="hunk" data-uri="${escapeHtml(uri)}" data-line="${line}">
@@ -271,6 +271,14 @@ ${hunksHtml}
   body { font-family: var(--vscode-editor-font-family, sans-serif); background: var(--vscode-editor-background); color: var(--vscode-editor-foreground); }
   .empty { padding: 40px 20px; color: var(--vscode-descriptionForeground); font-style: italic; text-align: center; opacity: 0.55; margin-top: 40px; }
 </style></head><body><div class="empty">${message}</div></body></html>`;
+	}
+
+	/**
+	 * Force the next updateForEditor call to re-render, even if the cursor
+	 * is still inside the same enclosing function (e.g. after a theme change).
+	 */
+	resetCurrentScope(): void {
+		this._currentEnclosingLine = -1;
 	}
 
 	dispose(): void {
