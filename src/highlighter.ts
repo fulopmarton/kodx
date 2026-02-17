@@ -18,7 +18,6 @@ const LANG_MAP: Record<string, string> = {
 
 const SUPPORTED_LANGS = Object.values(LANG_MAP);
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 let _highlighter: any = null;
 
 async function getHighlighter() {
@@ -56,7 +55,11 @@ export async function highlightCode(
 		const hl = await getHighlighter();
 		const lang = LANG_MAP[languageId] ?? 'typescript';
 		const theme = getShikiTheme();
-		return hl.codeToHtml(code, { lang, theme });
+		let html = hl.codeToHtml(code, { lang, theme });
+		// Strip background color to use VS Code theme background
+		html = html.replace(/background-color:[^;"]+;?/g, '');
+		html = html.replace(/background:[^;"]+;?/g, '');
+		return html;
 	} catch (err) {
 		console.error('kodx: highlight error', err);
 		const escaped = code

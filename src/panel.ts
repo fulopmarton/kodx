@@ -16,6 +16,24 @@ export class XrayPanel {
 	private constructor(panel: vscode.WebviewPanel) {
 		this._panel = panel;
 		this._panel.onDidDispose(() => this.dispose(), null, this._disposables);
+		
+		// Handle messages from the webview
+		this._panel.webview.onDidReceiveMessage(
+			async (message) => {
+				if (message.command === 'navigate') {
+					const uri = vscode.Uri.parse(message.uri);
+					const position = new vscode.Position(message.line, 0);
+					const doc = await vscode.workspace.openTextDocument(uri);
+					await vscode.window.showTextDocument(doc, {
+						selection: new vscode.Range(position, position),
+						viewColumn: vscode.ViewColumn.One,
+					});
+				}
+			},
+			null,
+			this._disposables
+		);
+		
 		this._panel.webview.html = this._emptyHtml();
 	}
 
@@ -25,7 +43,7 @@ export class XrayPanel {
 				'kodxXray',
 				'kodx: Xray',
 				{ viewColumn: vscode.ViewColumn.Beside, preserveFocus: true },
-				{ enableScripts: false, retainContextWhenHidden: true }
+				{ enableScripts: true, retainContextWhenHidden: true }
 			);
 			XrayPanel._instance = new XrayPanel(panel);
 		}
@@ -103,15 +121,21 @@ export class XrayPanel {
 				const langId = langFromUri(def.uri) ?? editorLanguageId;
 				const html = await highlightCode(def.content, langId);
 				const relativePath = vscode.workspace.asRelativePath(def.uri);
-				return { name: def.name, relativePath, html };
+				return { 
+					name: def.name, 
+					relativePath, 
+					html,
+					uri: def.uri.toString(),
+					line: def.startLine,
+				};
 			})
 		);
 
 		const theme = getShikiTheme();
 		const isDark = theme !== 'github-light';
 
-		const hunksHtml = highlighted.map(({ name, relativePath, html }) => `
-<div class="hunk">
+		const hunksHtml = highlighted.map(({ name, relativePath, html, uri, line }) => `
+<div class="hunk" data-uri="${escapeHtml(uri)}" data-line="${line}">
   <div class="hunk-header">
     <span class="fn-name">${escapeHtml(name)}</span>
     <span class="filepath">${escapeHtml(relativePath)}</span>
@@ -160,6 +184,12 @@ export class XrayPanel {
 
   .hunk {
     border-bottom: 1px solid var(--vscode-editorGroup-border);
+    cursor: pointer;
+    transition: background-color 0.1s ease;
+  }
+  
+  .hunk:hover {
+    background-color: var(--vscode-list-hoverBackground);
   }
 
   .hunk-header {
@@ -215,6 +245,16 @@ export class XrayPanel {
   <span class="count">${definitions.length} call${definitions.length === 1 ? '' : 's'}</span>
 </div>
 ${hunksHtml}
+<script>
+  const vscode = acquireVsCodeApi();
+  document.querySelectorAll('.hunk').forEach(hunk => {
+    hunk.addEventListener('click', () => {
+      const uri = hunk.getAttribute('data-uri');
+      const line = parseInt(hunk.getAttribute('data-line'), 10);
+      vscode.postMessage({ command: 'navigate', uri, line });
+    });
+  });
+</script>
 </body>
 </html>`;
 	}

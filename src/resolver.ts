@@ -114,9 +114,17 @@ function extractFunctionContent(document: vscode.TextDocument, startLine: number
 	let braceCount = 0;
 	let foundBrace = false;
 	const lines: string[] = [];
+	// Track whether we've started collecting (to include signature lines before opening brace)
+	let started = false;
 
 	for (let i = startLine; i < document.lineCount; i++) {
 		const line = document.lineAt(i).text;
+		
+		// Start collecting from the first line
+		if (!started) {
+			started = true;
+			lines.push(line);
+		}
 		
 		for (const char of line) {
 			if (char === '{') {
@@ -125,17 +133,18 @@ function extractFunctionContent(document: vscode.TextDocument, startLine: number
 			} else if (char === '}') {
 				braceCount--;
 				if (foundBrace && braceCount === 0) {
-					// Found end of function
+					// Found end of function - push the current line with closing brace
+					if (started && !lines[lines.length - 1].includes(line)) {
+						lines.push(line);
+					}
 					const content = lines.join('\n');
 					return content.length > 0 ? content : null;
 				}
 			}
 		}
 
-		if (foundBrace) {
-			lines.push(line);
-		} else if (line.includes('{')) {
-			foundBrace = true;
+		// Continue adding lines after first line
+		if (started && i > startLine) {
 			lines.push(line);
 		}
 	}
