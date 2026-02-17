@@ -1,65 +1,40 @@
-# kodx - Code Xray
+# kodx — Code Xray
 
-A VS Code extension that inlines function calls to visually show their implementation. "Code xray" lets you see through function calls and understand what's happening inside them without navigating away from your current code.
+See through function calls. **kodx** opens a side panel that shows the resolved implementations of every function called inside the function your cursor is in — syntax-highlighted with your current VS Code theme.
 
 ## Features
 
-- **Inline Function Display**: Hover over or select a function call to see its implementation inlined
-- **Code Understanding**: Visualize what functions do without context switching
-- **Quick Peek**: Get instant insights into function behavior
-- **Multi-language Support**: Works across various programming languages
+- **Xray Panel** — Press `Alt+X` to open a side panel listing every function call inside the enclosing function, each expanded to show its full implementation.
+- **Auto-tracking** — As you move your cursor into a different function, the panel updates automatically.
+- **Scroll-to-call** — Hover your cursor over a function call name and the panel scrolls to its definition and highlights it.
+- **Click-to-navigate** — Click any definition in the panel to jump to its source file and line.
+- **Theme-matched highlighting** — Syntax colors are loaded from your active VS Code color theme, so the panel looks identical to your editor.
+- **Theme change support** — Switch themes and the panel re-renders immediately with the new colors.
+
+## Supported Languages
+
+TypeScript, TSX, JavaScript, JSX (activation).  
+Syntax highlighting also covers Python, Go, Rust, Java, C/C++, C#, and JSON.
+
+## Usage
+
+1. Open a TypeScript or JavaScript file.
+2. Place your cursor inside a function.
+3. Press **`Alt+X`** (or run **kodx: Expand Function at Cursor** from the Command Palette).
+4. The Xray panel opens beside your editor showing all called functions.
+5. Move your cursor over different function call names to scroll the panel to each one.
 
 ## Requirements
 
-VS Code 1.109.0 or higher
-
-## How It Works
-
-The extension works by:
-1. Detecting function calls in your code
-2. Finding the function definition in your workspace
-3. Displaying the function body inline for quick reference
-
-## Extension Settings
-
-Include if your extension adds any VS Code settings through the `contributes.configuration` extension point.
-
-For example:
-
-This extension contributes the following settings:
-
-* `myExtension.enable`: Enable/disable this extension.
-* `myExtension.thing`: Set to `blah` to do something.
+- VS Code 1.109.0 or higher
+- A TypeScript or JavaScript workspace with a language server that provides document symbols
 
 ## Known Issues
 
-- Initial version - core functionality under development
+- Semantic token colors (from the language server) are not replicated — only TextMate grammar colors are matched.
 
 ## Release Notes
 
 ### 0.0.1
 
-Initial project setup - foundation for inline function call visualization
-
----
-
-## Following extension guidelines
-
-Ensure that you've read through the extensions guidelines and follow the best practices for creating your extension.
-
-* [Extension Guidelines](https://code.visualstudio.com/api/references/extension-guidelines)
-
-## Working with Markdown
-
-You can author your README using Visual Studio Code. Here are some useful editor keyboard shortcuts:
-
-* Split the editor (`Cmd+\` on macOS or `Ctrl+\` on Windows and Linux).
-* Toggle preview (`Shift+Cmd+V` on macOS or `Shift+Ctrl+V` on Windows and Linux).
-* Press `Ctrl+Space` (Windows, Linux, macOS) to see a list of Markdown snippets.
-
-## For more information
-
-* [Visual Studio Code's Markdown Support](http://code.visualstudio.com/docs/languages/markdown)
-* [Markdown Syntax Reference](https://help.github.com/articles/markdown-basics/)
-
-**Enjoy!**
+Initial release — Xray panel with auto-tracking, scroll-to-call, click-to-navigate, and theme-matched Shiki highlighting.

@@ -20,7 +20,7 @@
     "commands": [
       {
         "command": "kodx.xray",
-        "title": "Xray: Expand Function at Cursor",
+        "title": "Expand Function at Cursor",
         "category": "kodx"
       }
     ],
@@ -34,13 +34,7 @@
     ],
     "configuration": {
       "title": "kodx - Code Xray",
-      "properties": {
-        "kodx.maxInlineLength": {
-          "type": "number",
-          "default": 120,
-          "description": "Maximum characters per line shown in the Xray panel"
-        }
-      }
+      "properties": {}
     }
   },
   "scripts": {
