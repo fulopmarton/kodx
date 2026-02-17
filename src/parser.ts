@@ -101,6 +101,139 @@ export function extractFunctionDefinition(
 }
 
 /**
+ * Find the range of the function that contains the given position.
+ * Uses VS Code's document symbol provider for accuracy.
+ */
+export async function findEnclosingFunctionRange(
+	document: vscode.TextDocument,
+	position: vscode.Position
+): Promise<vscode.Range | null> {
+	try {
+		const symbols = await vscode.commands.executeCommand<vscode.DocumentSymbol[]>(
+			'vscode.executeDocumentSymbolProvider',
+			document.uri
+		);
+
+		if (!symbols || symbols.length === 0) {
+			return findEnclosingFunctionByBraces(document, position);
+		}
+
+		// Walk symbol tree to find deepest function/method containing the cursor
+		const functionKinds = new Set([
+			vscode.SymbolKind.Function,
+			vscode.SymbolKind.Method,
+			vscode.SymbolKind.Constructor,
+		]);
+
+		function searchSymbols(syms: vscode.DocumentSymbol[]): vscode.Range | null {
+			let best: vscode.Range | null = null;
+			for (const sym of syms) {
+				if (sym.range.contains(position)) {
+					if (functionKinds.has(sym.kind)) {
+						// Prefer deepest (smallest) containing range
+						if (!best || rangeSize(sym.range) < rangeSize(best)) {
+							best = sym.range;
+						}
+					}
+					// Recurse into children
+					const child = searchSymbols(sym.children ?? []);
+					if (child && (!best || rangeSize(child) < rangeSize(best))) {
+						best = child;
+					}
+				}
+			}
+			return best;
+		}
+
+		return searchSymbols(symbols) ?? findEnclosingFunctionByBraces(document, position);
+	} catch {
+		return findEnclosingFunctionByBraces(document, position);
+	}
+}
+
+function rangeSize(r: vscode.Range): number {
+	return (r.end.line - r.start.line) * 10000 + (r.end.character - r.start.character);
+}
+
+/**
+ * Fallback: find enclosing function by brace-matching upwards from position.
+ */
+function findEnclosingFunctionByBraces(
+	document: vscode.TextDocument,
+	position: vscode.Position
+): vscode.Range | null {
+	const text = document.getText();
+	const offset = document.offsetAt(position);
+	let depth = 0;
+	let closingOffset = -1;
+
+	// Walk forward from cursor to find the matching closing brace
+	for (let i = offset; i < text.length; i++) {
+		if (text[i] === '{') { depth++; }
+		else if (text[i] === '}') {
+			if (depth === 0) { closingOffset = i; break; }
+			depth--;
+		}
+	}
+	if (closingOffset === -1) { return null; }
+
+	// Walk backward from cursor to find the opening brace
+	depth = 0;
+	let openingOffset = -1;
+	for (let i = offset; i >= 0; i--) {
+		if (text[i] === '}') { depth++; }
+		else if (text[i] === '{') {
+			if (depth === 0) { openingOffset = i; break; }
+			depth--;
+		}
+	}
+	if (openingOffset === -1) { return null; }
+
+	// Walk further backward to find 'function' keyword or arrow
+	const preamble = text.slice(Math.max(0, openingOffset - 200), openingOffset);
+	const fnMatch = preamble.match(/(?:function\s+\w+|\w+\s*(?:=|:)\s*(?:async\s+)?(?:function|\())[^{]*$/);
+	if (!fnMatch) { return null; }
+
+	const startOffset = openingOffset - 200 + preamble.lastIndexOf(fnMatch[0]);
+	return new vscode.Range(
+		document.positionAt(Math.max(0, startOffset)),
+		document.positionAt(closingOffset + 1)
+	);
+}
+
+/**
+ * Parse function calls within a specific text range of a document.
+ */
+export function parseFunctionCallsInRange(
+	document: vscode.TextDocument,
+	range: vscode.Range
+): FunctionCall[] {
+	const startOffset = document.offsetAt(range.start);
+	const endOffset = document.offsetAt(range.end);
+	const rangeText = document.getText().slice(startOffset, endOffset);
+
+	const calls: FunctionCall[] = [];
+	const functionCallRegex = /\b([a-zA-Z_$][\w$]*)\s*\(/g;
+	let match;
+
+	while ((match = functionCallRegex.exec(rangeText)) !== null) {
+		const name = match[1];
+		if (isKeywordOrBuiltin(name)) { continue; }
+
+		const absOffset = startOffset + match.index;
+		const pos = document.positionAt(absOffset);
+		calls.push({
+			name,
+			range: new vscode.Range(pos, new vscode.Position(pos.line, pos.character + name.length)),
+			line: pos.line,
+			character: pos.character,
+		});
+	}
+
+	return calls;
+}
+
+/**
  * Check if a name is a JavaScript keyword or built-in function
  */
 function isKeywordOrBuiltin(name: string): boolean {

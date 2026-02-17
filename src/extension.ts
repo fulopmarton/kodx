@@ -1,8 +1,7 @@
-// The module 'vscode' contains the VS Code extensibility API
-// Import the module and reference it with the alias vscode in your code below
 import * as vscode from 'vscode';
-import { FunctionHoverProvider, FunctionInlineProvider } from './hover';
+import { FunctionHoverProvider } from './hover';
 import { FunctionDecorationProvider, FunctionCodeLensProvider } from './decoration';
+import { XrayPanel } from './panel';
 
 let decorationProvider: FunctionDecorationProvider;
 let codeLensProvider: FunctionCodeLensProvider;
@@ -10,82 +9,115 @@ let codeLensProvider: FunctionCodeLensProvider;
 export function activate(context: vscode.ExtensionContext) {
 	console.log('Activating kodx - Code Xray extension');
 
-	// Initialize providers
 	decorationProvider = new FunctionDecorationProvider();
 	codeLensProvider = new FunctionCodeLensProvider();
 
-	// Register hover provider for TypeScript/JavaScript
+	// ── Hover provider ──────────────────────────────────────────────────────
 	const hoverProvider = new FunctionHoverProvider();
-	const hoverDisposable = vscode.languages.registerHoverProvider(
-		['typescript', 'typescriptreact', 'javascript', 'javascriptreact'],
-		hoverProvider
+	context.subscriptions.push(
+		vscode.languages.registerHoverProvider(
+			['typescript', 'typescriptreact', 'javascript', 'javascriptreact'],
+			hoverProvider
+		)
 	);
-	context.subscriptions.push(hoverDisposable);
 
-	// Register code lens provider
-	const codeLensDisposable = vscode.languages.registerCodeLensProvider(
-		['typescript', 'typescriptreact', 'javascript', 'javascriptreact'],
-		codeLensProvider
+	// ── CodeLens provider ───────────────────────────────────────────────────
+	context.subscriptions.push(
+		vscode.languages.registerCodeLensProvider(
+			['typescript', 'typescriptreact', 'javascript', 'javascriptreact'],
+			codeLensProvider
+		)
 	);
-	context.subscriptions.push(codeLensDisposable);
 
-	// Register command: Peek Definition
-	const peekDefinitionCommand = vscode.commands.registerCommand(
-		'kodx.peekDefinition',
-		async (uri: vscode.Uri, position: vscode.Position, functionName: string) => {
-			const document = await vscode.workspace.openTextDocument(uri);
-			await FunctionInlineProvider.peekDefinition(document, position);
-		}
+	// ── Command: kodx.xray ─────────────────────────────────────────────────
+	// Opens (or focuses) the Xray panel beside the editor and immediately
+	// resolves the function call under the cursor.
+	context.subscriptions.push(
+		vscode.commands.registerCommand('kodx.xray', async () => {
+			const editor = vscode.window.activeTextEditor;
+			if (!editor) {
+				return;
+			}
+			const panel = XrayPanel.getInstance(context);
+			await panel.updateForEditor(editor);
+		})
 	);
-	context.subscriptions.push(peekDefinitionCommand);
 
-	// Register command: Toggle inline decorations
-	const toggleCommand = vscode.commands.registerCommand('kodx.toggleInlineCode', async () => {
-		const editor = vscode.window.activeTextEditor;
-		if (editor) {
+	// ── Command: kodx.peekDefinition ──────────────────────────────────────
+	// Triggers VS Code's built-in inline peek widget (the hunk-style overlay
+	// that appears directly below the call in the editor).
+	context.subscriptions.push(
+		vscode.commands.registerCommand(
+			'kodx.peekDefinition',
+			async (uri?: vscode.Uri, position?: vscode.Position) => {
+				const editor = vscode.window.activeTextEditor;
+				if (!editor) {
+					return;
+				}
+				const pos = position ?? editor.selection.active;
+				// Reveal inline peek widget
+				await vscode.commands.executeCommand(
+					'editor.action.peekDefinition',
+					uri ?? editor.document.uri,
+					pos
+				);
+			}
+		)
+	);
+
+	// ── Command: kodx.toggleInlineCode ────────────────────────────────────
+	context.subscriptions.push(
+		vscode.commands.registerCommand('kodx.toggleInlineCode', async () => {
+			const editor = vscode.window.activeTextEditor;
+			if (!editor) {
+				return;
+			}
 			if (decorationProvider.getIsEnabled()) {
 				decorationProvider.disable();
 				decorationProvider.clearDecorations(editor);
-				vscode.window.showInformationMessage('Inline decorations disabled');
+				vscode.window.showInformationMessage('kodx: Inline indicators disabled');
 			} else {
 				decorationProvider.enable();
 				await decorationProvider.updateDecorations(editor);
-				vscode.window.showInformationMessage('Inline decorations enabled');
+				vscode.window.showInformationMessage('kodx: Inline indicators enabled');
 			}
-		}
-	});
-	context.subscriptions.push(toggleCommand);
+		})
+	);
 
-	// Update decorations when editor changes
-	vscode.window.onDidChangeActiveTextEditor(
-		(editor) => {
+	// ── Cursor tracking → auto-update Xray panel ──────────────────────────
+	context.subscriptions.push(
+		vscode.window.onDidChangeTextEditorSelection(async (event) => {
+			if (XrayPanel.isOpen()) {
+				const panel = XrayPanel.getInstance(context);
+				await panel.updateForEditor(event.textEditor);
+			}
+		})
+	);
+
+	// ── Editor/document change → refresh decorations ─────────────────────
+	context.subscriptions.push(
+		vscode.window.onDidChangeActiveTextEditor((editor) => {
 			decorationProvider.updateDecorations(editor);
-		},
-		null,
-		context.subscriptions
+		})
 	);
 
-	// Update decorations when document changes
-	vscode.workspace.onDidChangeTextDocument(
-		(event) => {
-			if (vscode.window.activeTextEditor && event.document === vscode.window.activeTextEditor.document) {
-				decorationProvider.updateDecorations(vscode.window.activeTextEditor);
+	context.subscriptions.push(
+		vscode.workspace.onDidChangeTextDocument((event) => {
+			const editor = vscode.window.activeTextEditor;
+			if (editor && event.document === editor.document) {
+				decorationProvider.updateDecorations(editor);
 			}
-		},
-		null,
-		context.subscriptions
+		})
 	);
 
-	// Update decorations on initial load
-	if (vscode.window.activeTextEditor) {
-		decorationProvider.updateDecorations(vscode.window.activeTextEditor);
-	}
+	// Initial decoration pass
+	decorationProvider.updateDecorations(vscode.window.activeTextEditor);
 
-	console.log('kodx extension activated successfully');
+	console.log('kodx activated');
 }
 
 export function deactivate() {
-	console.log('Deactivating kodx extension');
 	decorationProvider?.dispose();
 	codeLensProvider?.dispose();
 }
+

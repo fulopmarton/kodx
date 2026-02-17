@@ -19,14 +19,33 @@
   "contributes": {
     "commands": [
       {
+        "command": "kodx.xray",
+        "title": "Xray: Expand Function at Cursor",
+        "category": "kodx"
+      },
+      {
         "command": "kodx.peekDefinition",
-        "title": "Peek Function Definition",
+        "title": "Xray: Peek Function Definition (Inline)",
         "category": "kodx"
       },
       {
         "command": "kodx.toggleInlineCode",
-        "title": "Toggle Inline Code Display",
+        "title": "Xray: Toggle Inline Indicators",
         "category": "kodx"
+      }
+    ],
+    "keybindings": [
+      {
+        "command": "kodx.xray",
+        "key": "alt+x",
+        "mac": "alt+x",
+        "when": "editorTextFocus"
+      },
+      {
+        "command": "kodx.peekDefinition",
+        "key": "alt+shift+x",
+        "mac": "alt+shift+x",
+        "when": "editorTextFocus"
       }
     ],
     "configuration": {
@@ -35,12 +54,12 @@
         "kodx.enableInlineDecoration": {
           "type": "boolean",
           "default": true,
-          "description": "Enable inline decoration showing function call previews"
+          "description": "Show ⊕ indicator after function calls that can be expanded"
         },
         "kodx.maxInlineLength": {
           "type": "number",
-          "default": 100,
-          "description": "Maximum characters to show in inline preview"
+          "default": 120,
+          "description": "Maximum characters per line shown in the Xray panel"
         }
       }
     }
