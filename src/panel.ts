@@ -12,6 +12,7 @@ export class XrayPanel {
 	private _panel: vscode.WebviewPanel;
 	private _disposables: vscode.Disposable[] = [];
 	private _currentEnclosingLine = -1;
+	private _currentHighlightedCall: string | null = null;
 
 	private constructor(panel: vscode.WebviewPanel) {
 		this._panel = panel;
@@ -66,7 +67,16 @@ export class XrayPanel {
 			return;
 		}
 
+		// Detect the function call name under the cursor
+		const wordRange = document.getWordRangeAtPosition(position);
+		const wordAtCursor = wordRange ? document.getText(wordRange) : null;
+
 		if (enclosingFunction.range.start.line === this._currentEnclosingLine) {
+			// Same enclosing function — just scroll to the call under cursor
+			if (wordAtCursor && wordAtCursor !== this._currentHighlightedCall) {
+				this._currentHighlightedCall = wordAtCursor;
+				this._scrollToFunction(wordAtCursor);
+			}
 			return;
 		}
 		this._currentEnclosingLine = enclosingFunction.range.start.line;
@@ -107,6 +117,13 @@ export class XrayPanel {
 
 		this._panel.webview.html = await this._getHtml(enclosingName, definitions, document.languageId);
 		this._panel.title = `kodx: ${enclosingName}`;
+
+		// After rendering, scroll to the call under cursor if any
+		if (wordAtCursor) {
+			this._currentHighlightedCall = wordAtCursor;
+			// Small delay to let the webview render before scrolling
+			setTimeout(() => this._scrollToFunction(wordAtCursor), 80);
+		}
 	}
 
 	private async _getHtml(
@@ -134,7 +151,7 @@ export class XrayPanel {
 		const isDark = kind !== vscode.ColorThemeKind.Light && kind !== vscode.ColorThemeKind.HighContrastLight;
 
 		const hunksHtml = highlighted.map(({ name, relativePath, html, uri, line }) => `
-<div class="hunk" data-uri="${escapeHtml(uri)}" data-line="${line}">
+<div class="hunk" data-uri="${escapeHtml(uri)}" data-line="${line}" data-fn="${escapeHtml(name)}">
   <div class="hunk-header">
     <span class="fn-name">${escapeHtml(name)}</span>
     <span class="filepath">${escapeHtml(relativePath)}</span>
@@ -189,6 +206,10 @@ export class XrayPanel {
   
   .hunk:hover {
     background-color: var(--vscode-list-hoverBackground);
+  }
+  .hunk.active {
+    outline: 1px solid var(--vscode-focusBorder);
+    outline-offset: -1px;
   }
 
   .hunk-header {
@@ -260,6 +281,20 @@ ${hunksHtml}
       vscode.postMessage({ command: 'navigate', uri, line });
     });
   });
+
+  window.addEventListener('message', (event) => {
+    const msg = event.data;
+    if (msg.command === 'scrollToFunction') {
+      const name = msg.name;
+      // Remove previous active highlight
+      document.querySelectorAll('.hunk.active').forEach(el => el.classList.remove('active'));
+      const target = document.querySelector('.hunk[data-fn=\"' + CSS.escape(name) + '\"]');
+      if (target) {
+        target.classList.add('active');
+        target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+    }
+  });
 </script>
 </body>
 </html>`;
@@ -279,6 +314,14 @@ ${hunksHtml}
 	 */
 	resetCurrentScope(): void {
 		this._currentEnclosingLine = -1;
+		this._currentHighlightedCall = null;
+	}
+
+	/**
+	 * Tell the webview to scroll to and highlight the hunk for `fnName`.
+	 */
+	private _scrollToFunction(fnName: string): void {
+		this._panel.webview.postMessage({ command: 'scrollToFunction', name: fnName });
 	}
 
 	dispose(): void {
