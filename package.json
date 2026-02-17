@@ -1,0 +1,66 @@
+{
+  "name": "kodx",
+  "displayName": "kodx",
+  "description": "A VS Code extension that inlines function calls to show their implementation",
+  "version": "0.0.1",
+  "engines": {
+    "vscode": "^1.109.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "activationEvents": [
+    "onLanguage:typescript",
+    "onLanguage:typescriptreact",
+    "onLanguage:javascript",
+    "onLanguage:javascriptreact"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "kodx.peekDefinition",
+        "title": "Peek Function Definition",
+        "category": "kodx"
+      },
+      {
+        "command": "kodx.toggleInlineCode",
+        "title": "Toggle Inline Code Display",
+        "category": "kodx"
+      }
+    ],
+    "configuration": {
+      "title": "kodx - Code Xray",
+      "properties": {
+        "kodx.enableInlineDecoration": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable inline decoration showing function call previews"
+        },
+        "kodx.maxInlineLength": {
+          "type": "number",
+          "default": 100,
+          "description": "Maximum characters to show in inline preview"
+        }
+      }
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "pnpm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "pretest": "pnpm run compile && pnpm run lint",
+    "lint": "eslint src",
+    "test": "vscode-test"
+  },
+  "devDependencies": {
+    "@types/vscode": "^1.109.0",
+    "@types/mocha": "^10.0.10",
+    "@types/node": "22.x",
+    "typescript-eslint": "^8.54.0",
+    "eslint": "^9.39.2",
+    "typescript": "^5.9.3",
+    "@vscode/test-cli": "^0.0.12",
+    "@vscode/test-electron": "^2.5.2"
+  }
+}
