@@ -2,6 +2,7 @@ import * as vscode from 'vscode';
 import { FunctionHoverProvider } from './hover';
 import { FunctionDecorationProvider, FunctionCodeLensProvider } from './decoration';
 import { XrayPanel } from './panel';
+import { disposeHighlighter } from './highlighter';
 
 let decorationProvider: FunctionDecorationProvider;
 let codeLensProvider: FunctionCodeLensProvider;
@@ -119,5 +120,6 @@ export function activate(context: vscode.ExtensionContext) {
 export function deactivate() {
 	decorationProvider?.dispose();
 	codeLensProvider?.dispose();
+	disposeHighlighter();
 }
 
