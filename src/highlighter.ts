@@ -56,18 +56,22 @@ export async function highlightCode(
 		const lang = LANG_MAP[languageId] ?? 'typescript';
 		const theme = getShikiTheme();
 		let html = hl.codeToHtml(code, { lang, theme });
-		// Strip all background-related CSS properties to use VS Code theme background
+		// Strip only background-related CSS properties, keep color for syntax highlighting
 		html = html.replace(/background-color\s*:\s*[^;}"']+;?/gi, '');
 		html = html.replace(/background\s*:\s*[^;}"']+;?/gi, '');
 		return html;
 	} catch (err) {
 		console.error('kodx: highlight error', err);
-		const escaped = code
-			.replace(/&/g, '&amp;')
-			.replace(/</g, '&lt;')
-			.replace(/>/g, '&gt;');
+		const escaped = escapeHtml(code);
 		return `<pre style="white-space:pre;font-family:monospace">${escaped}</pre>`;
 	}
+}
+
+function escapeHtml(str: string): string {
+	return str
+		.replace(/&/g, '&amp;')
+		.replace(/</g, '&lt;')
+		.replace(/>/g, '&gt;');
 }
 
 export function disposeHighlighter(): void {
