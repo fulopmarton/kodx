@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import { resolveFunctionDefinition } from './resolver';
-import { findEnclosingFunctionRange, parseFunctionCallsInRange, FunctionDefinition } from './parser';
+import { findEnclosingFunctionRange, parseFunctionCallsInRange, FunctionDefinition, EnclosingFunction } from './parser';
 import { highlightCode, getShikiTheme } from './highlighter';
 
 /**
@@ -61,20 +61,24 @@ export class XrayPanel {
 		const document = editor.document;
 		const position = editor.selection.active;
 
-		const enclosingRange = await findEnclosingFunctionRange(document, position);
-		if (!enclosingRange) {
+		const enclosingFunction = await findEnclosingFunctionRange(document, position);
+		if (!enclosingFunction) {
 			return;
 		}
 
-		if (enclosingRange.start.line === this._currentEnclosingLine) {
+		if (enclosingFunction.range.start.line === this._currentEnclosingLine) {
 			return;
 		}
-		this._currentEnclosingLine = enclosingRange.start.line;
+		this._currentEnclosingLine = enclosingFunction.range.start.line;
+
+		const enclosingName = enclosingFunction.name;
 
 		// Collect unique function calls inside the enclosing function
-		const calls = parseFunctionCallsInRange(document, enclosingRange);
+		const calls = parseFunctionCallsInRange(document, enclosingFunction.range);
 		const seen = new Set<string>();
 		const unique = calls.filter((c) => {
+			// Exclude the enclosing function itself (recursive calls)
+			if (c.name === enclosingName) { return false; }
 			if (seen.has(c.name)) { return false; }
 			seen.add(c.name);
 			return true;
@@ -100,11 +104,6 @@ export class XrayPanel {
 			this._panel.title = 'kodx: Xray';
 			return;
 		}
-
-		// Derive enclosing function name
-		const enclosingLine = document.lineAt(enclosingRange.start.line).text.trim();
-		const nameMatch = enclosingLine.match(/(?:function\s+(\w+)|(?:async\s+)?(\w+)\s*[=:]\s*(?:async\s+)?(?:function|\())/);
-		const enclosingName = nameMatch?.[1] ?? nameMatch?.[2] ?? '(anonymous)';
 
 		this._panel.webview.html = await this._getHtml(enclosingName, definitions, document.languageId);
 		this._panel.title = `kodx: ${enclosingName}`;

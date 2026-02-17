@@ -16,6 +16,11 @@ export interface FunctionDefinition {
 	endLine: number;
 }
 
+export interface EnclosingFunction {
+	range: vscode.Range;
+	name: string;
+}
+
 /**
  * Parse function calls from a document
  */
@@ -107,7 +112,7 @@ export function extractFunctionDefinition(
 export async function findEnclosingFunctionRange(
 	document: vscode.TextDocument,
 	position: vscode.Position
-): Promise<vscode.Range | null> {
+): Promise<EnclosingFunction | null> {
 	try {
 		const symbols = await vscode.commands.executeCommand<vscode.DocumentSymbol[]>(
 			'vscode.executeDocumentSymbolProvider',
@@ -125,19 +130,19 @@ export async function findEnclosingFunctionRange(
 			vscode.SymbolKind.Constructor,
 		]);
 
-		function searchSymbols(syms: vscode.DocumentSymbol[]): vscode.Range | null {
-			let best: vscode.Range | null = null;
+		function searchSymbols(syms: vscode.DocumentSymbol[]): EnclosingFunction | null {
+			let best: EnclosingFunction | null = null;
 			for (const sym of syms) {
 				if (sym.range.contains(position)) {
 					if (functionKinds.has(sym.kind)) {
 						// Prefer deepest (smallest) containing range
-						if (!best || rangeSize(sym.range) < rangeSize(best)) {
-							best = sym.range;
+						if (!best || rangeSize(sym.range) < rangeSize(best.range)) {
+							best = { range: sym.range, name: sym.name };
 						}
 					}
 					// Recurse into children
 					const child = searchSymbols(sym.children ?? []);
-					if (child && (!best || rangeSize(child) < rangeSize(best))) {
+					if (child && (!best || rangeSize(child.range) < rangeSize(best.range))) {
 						best = child;
 					}
 				}
@@ -161,7 +166,7 @@ function rangeSize(r: vscode.Range): number {
 function findEnclosingFunctionByBraces(
 	document: vscode.TextDocument,
 	position: vscode.Position
-): vscode.Range | null {
+): EnclosingFunction | null {
 	const text = document.getText();
 	const offset = document.offsetAt(position);
 	let depth = 0;
@@ -191,14 +196,19 @@ function findEnclosingFunctionByBraces(
 
 	// Walk further backward to find 'function' keyword or arrow
 	const preamble = text.slice(Math.max(0, openingOffset - 200), openingOffset);
-	const fnMatch = preamble.match(/(?:function\s+\w+|\w+\s*(?:=|:)\s*(?:async\s+)?(?:function|\())[^{]*$/);
+	const fnMatch = preamble.match(/(?:function\s+(\w+)|(\w+)\s*(?:=|:)\s*(?:async\s+)?(?:function|\())[^{]*$/);
 	if (!fnMatch) { return null; }
 
+	// Extract function name from the match
+	const functionName = fnMatch[1] || fnMatch[2] || '(anonymous)';
+
 	const startOffset = openingOffset - 200 + preamble.lastIndexOf(fnMatch[0]);
-	return new vscode.Range(
+	const range = new vscode.Range(
 		document.positionAt(Math.max(0, startOffset)),
 		document.positionAt(closingOffset + 1)
 	);
+	
+	return { range, name: functionName };
 }
 
 /**
