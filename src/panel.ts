@@ -227,6 +227,13 @@ export class XrayPanel {
     font-family: var(--vscode-editor-font-family, 'Courier New', monospace);
     font-size: inherit;
     line-height: 1.6;
+    background: transparent !important;
+  }
+  .hunk-body pre.shiki code *,
+  .hunk-body pre.shiki span,
+  .hunk-body pre.shiki .line {
+    background: transparent !important;
+    background-color: transparent !important;
   }
 
   .empty {

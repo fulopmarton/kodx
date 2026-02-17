@@ -56,9 +56,9 @@ export async function highlightCode(
 		const lang = LANG_MAP[languageId] ?? 'typescript';
 		const theme = getShikiTheme();
 		let html = hl.codeToHtml(code, { lang, theme });
-		// Strip background color to use VS Code theme background
-		html = html.replace(/background-color:[^;"]+;?/g, '');
-		html = html.replace(/background:[^;"]+;?/g, '');
+		// Strip all background-related CSS properties to use VS Code theme background
+		html = html.replace(/background-color\s*:\s*[^;}"']+;?/gi, '');
+		html = html.replace(/background\s*:\s*[^;}"']+;?/gi, '');
 		return html;
 	} catch (err) {
 		console.error('kodx: highlight error', err);
