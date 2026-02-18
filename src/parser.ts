@@ -155,7 +155,7 @@ function findEnclosingFunctionByBraces(
 
 	// Walk further backward to find 'function' keyword or arrow
 	const preamble = text.slice(Math.max(0, openingOffset - 200), openingOffset);
-	const fnMatch = preamble.match(/(?:function\s+(\w+)|(\w+)\s*(?:=|:)\s*(?:async\s+)?(?:function|\())[^{]*$/);
+	const fnMatch = preamble.match(/(?:(?:public|protected|private|static|abstract|final|async)\s+)*function\s+(\w+)|(\w+)\s*(?:=|:)\s*(?:async\s+)?(?:function|\()[^{]*$/);
 	if (!fnMatch) { return null; }
 
 	// Extract function name from the match
@@ -219,6 +219,11 @@ function isKeywordOrBuiltin(name: string): boolean {
 		'Symbol', 'BigInt', 'Proxy', 'Reflect', 'DataView', 'ArrayBuffer',
 		'TypedArray', 'require', 'exports', 'module', 'process', 'global',
 		'setInterval', 'setTimeout', 'clearInterval', 'clearTimeout',
+		// PHP language constructs
+		'echo', 'print', 'isset', 'empty', 'unset', 'list', 'array',
+		'include', 'require', 'include_once', 'require_once', 'die', 'exit',
+		'match', 'fn', 'namespace', 'use', 'interface', 'trait', 'enum',
+		'public', 'protected', 'private', 'abstract', 'final',
 	]);
 
 	return keywords.has(name);
