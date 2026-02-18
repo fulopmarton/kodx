@@ -9,14 +9,6 @@ export async function resolveFunctionDefinition(
 	sourceDocument: vscode.TextDocument
 ): Promise<FunctionDefinition | null> {
 	try {
-		// Get file extension to determine language
-		const ext = sourceDocument.fileName.split('.').pop();
-		
-		// Only support TypeScript/JavaScript for now
-		if (!['ts', 'tsx', 'js', 'jsx'].includes(ext || '')) {
-			return null;
-		}
-
 		// Search for function definition using workspace symbols
 		const symbols = await vscode.commands.executeCommand<vscode.SymbolInformation[]>(
 			'vscode.executeWorkspaceSymbolProvider',
@@ -46,7 +38,8 @@ export async function resolveFunctionDefinition(
 
 		// Read the function content
 		const doc = await vscode.workspace.openTextDocument(uri);
-		const content = extractFunctionContent(doc, range.start.line);
+		const content = extractFunctionContent(doc, range.start.line)
+			?? doc.getText(new vscode.Range(range.start, range.end));
 
 		if (!content) {
 			return null;

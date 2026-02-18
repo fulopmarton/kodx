@@ -16,6 +16,11 @@ const LANG_MAP: Record<string, string> = {
 	c: 'c',
 	csharp: 'csharp',
 	json: 'json',
+	php: 'php',
+	ruby: 'ruby',
+	kotlin: 'kotlin',
+	swift: 'swift',
+	shellscript: 'bash',
 };
 
 const SUPPORTED_LANGS = Object.values(LANG_MAP);
