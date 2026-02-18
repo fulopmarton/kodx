@@ -153,6 +153,7 @@ export class XrayPanel {
 		const hunksHtml = highlighted.map(({ name, relativePath, html, uri, line }) => `
 <div class="hunk" data-uri="${escapeHtml(uri)}" data-line="${line}" data-fn="${escapeHtml(name)}">
   <div class="hunk-header">
+    <span class="collapse-btn" title="Toggle collapse">▾</span>
     <span class="fn-name">${escapeHtml(name)}</span>
     <span class="filepath">${escapeHtml(relativePath)}</span>
   </div>
@@ -219,6 +220,20 @@ export class XrayPanel {
     align-items: baseline;
     gap: 10px;
     border-top: 1px solid var(--vscode-editorGroup-border);
+    cursor: pointer;
+    user-select: none;
+  }
+  .collapse-btn {
+    font-size: 0.85em;
+    opacity: 0.7;
+    transition: transform 0.15s ease;
+    flex-shrink: 0;
+  }
+  .hunk.collapsed .collapse-btn {
+    transform: rotate(-90deg);
+  }
+  .hunk.collapsed .hunk-body {
+    display: none;
   }
   .fn-name {
     font-family: var(--vscode-editor-font-family, monospace);
@@ -274,8 +289,18 @@ export class XrayPanel {
 ${hunksHtml}
 <script>
   const vscode = acquireVsCodeApi();
-  document.querySelectorAll('.hunk').forEach(hunk => {
-    hunk.addEventListener('click', () => {
+
+  // Toggle collapse when clicking the hunk header
+  document.querySelectorAll('.hunk-header').forEach(header => {
+    header.addEventListener('click', () => {
+      header.closest('.hunk').classList.toggle('collapsed');
+    });
+  });
+
+  // Navigate to definition when clicking the hunk body
+  document.querySelectorAll('.hunk-body').forEach(body => {
+    body.addEventListener('click', () => {
+      const hunk = body.closest('.hunk');
       const uri = hunk.getAttribute('data-uri');
       const line = parseInt(hunk.getAttribute('data-line'), 10);
       vscode.postMessage({ command: 'navigate', uri, line });
@@ -291,6 +316,8 @@ ${hunksHtml}
       const target = document.querySelector('.hunk[data-fn=\"' + CSS.escape(name) + '\"]');
       if (target) {
         target.classList.add('active');
+        // Expand if collapsed
+        target.classList.remove('collapsed');
         target.scrollIntoView({ behavior: 'smooth', block: 'center' });
       }
     }
