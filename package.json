@@ -3,11 +3,23 @@
   "displayName": "kodx",
   "description": "A VS Code extension that inlines function calls to show their implementation",
   "version": "0.0.1",
+  "publisher": "fulopmarton",
+  "author": "Marton Fulop",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/fulopmarton/kodx"
+  },
+  "bugs": {
+    "url": "https://github.com/fulopmarton/kodx/issues"
+  },
+  "homepage": "https://github.com/fulopmarton/kodx#readme",
   "engines": {
     "vscode": "^1.109.0"
   },
   "categories": [
-    "Other"
+    "Visualization",
+    "Programming Languages"
   ],
   "activationEvents": [
     "onLanguage:typescript",
@@ -51,6 +63,7 @@
     "@types/vscode": "^1.109.0",
     "@vscode/test-cli": "^0.0.12",
     "@vscode/test-electron": "^2.5.2",
+    "@vscode/vsce": "^3.7.1",
     "eslint": "^9.39.2",
     "typescript": "^5.9.3",
     "typescript-eslint": "^8.54.0"
